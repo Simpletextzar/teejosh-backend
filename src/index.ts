@@ -27,15 +27,29 @@ app.get("/productos", async (req, res) => {
 });
 // Endpoint de items
 // GET all items
+// GET all items with related product, edition, and language names
 app.get("/items", async (req, res) => {
   try {
-    const items = await prisma.item.findMany();
+    const items = await prisma.item.findMany({
+      include: {
+        producto: {
+          select: { id: true, nombre: true }, // only fetch id and nombre
+        },
+        edicion: {
+          select: { id: true, nombre: true },
+        },
+        lenguaje: {
+          select: { id: true, nombre: true },
+        },
+      },
+    });
     res.json(items);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
 // GET single item by ID
 app.get("/items/:id", async (req, res) => {
   const { id } = req.params;
