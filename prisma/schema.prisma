@@ -1,0 +1,64 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model categoria {
+  id       Int        @id(map: "pk_categoria_id") @default(autoincrement())
+  nombre   String     @db.VarChar(60)
+  producto producto[]
+}
+
+model cliente {
+  id       Int     @id(map: "pk_cliente_id") @default(autoincrement())
+  nombre   String  @db.VarChar(60)
+  apellido String  @db.VarChar(60)
+  dni      String  @db.VarChar(8)
+  telefono String? @db.VarChar(20)
+}
+
+model edicion {
+  id     Int    @id(map: "pk_edicion_id") @default(autoincrement())
+  nombre String @db.VarChar(60)
+  item   item[]
+}
+
+model franquicia {
+  id       Int        @id(map: "pk_franquicia_id") @default(autoincrement())
+  nombre   String     @db.VarChar(60)
+  producto producto[]
+}
+
+model item {
+  id            Int      @id(map: "pk_item_id") @default(autoincrement())
+  id_producto   Int
+  precio        Decimal  @db.Decimal(6, 2)
+  cantidad      Int
+  id_edicion    Int?
+  id_lenguaje   Int
+  fecha_ingreso DateTime @default(now()) @db.Timestamp(6)
+  edicion       edicion? @relation(fields: [id_edicion], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_item_id_edicion_edicion_id")
+  lenguaje      lenguaje @relation(fields: [id_lenguaje], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_item_id_lenguaje_lenguaje_id")
+  producto      producto @relation(fields: [id_producto], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_item_id_producto_producto_id")
+}
+
+model lenguaje {
+  id     Int    @id(map: "pk_lenguaje_id") @default(autoincrement())
+  nombre String @db.VarChar(60)
+  item   item[]
+}
+
+model producto {
+  id            Int        @id(map: "pk_producto_id") @default(autoincrement())
+  nombre        String     @db.VarChar(60)
+  descripcion   String?
+  id_categoria  Int
+  id_franquicia Int
+  item          item[]
+  categoria     categoria  @relation(fields: [id_categoria], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_producto_id_categoria_categoria_id")
+  franquicia    franquicia @relation(fields: [id_franquicia], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_producto_id_franquicia_franquicia_id")
+}
