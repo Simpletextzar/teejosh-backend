@@ -55,7 +55,7 @@ app.get("/items/:id", async (req, res) => {
   const { id } = req.params;
   try {
     const item = await prisma.item.findUnique({
-      where: { id: Number(id) }
+      where: { id: Number(id) },
     });
     if (!item) return res.status(404).json({ error: "Item not found" });
     res.json(item);
@@ -75,8 +75,8 @@ app.post("/items", async (req, res) => {
         precio,
         cantidad,
         id_edicion: id_edicion || null,
-        id_lenguaje
-      }
+        id_lenguaje,
+      },
     });
     res.status(201).json(item);
   } catch (error) {
@@ -97,8 +97,8 @@ app.put("/items/:id", async (req, res) => {
         precio,
         cantidad,
         id_edicion: id_edicion || null,
-        id_lenguaje
-      }
+        id_lenguaje,
+      },
     });
     res.json(item);
   } catch (error) {
@@ -112,11 +112,31 @@ app.delete("/items/:id", async (req, res) => {
   const { id } = req.params;
   try {
     await prisma.item.delete({
-      where: { id: Number(id) }
+      where: { id: Number(id) },
     });
     res.json({ message: "Item deleted successfully" });
   } catch (error) {
     console.error(error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// GET all ediciones
+app.get("/ediciones", async (req, res) => {
+  try {
+    const ediciones = await prisma.edicion.findMany();
+    res.json(ediciones);
+  } catch (error) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// GET all lenguajes
+app.get("/lenguajes", async (req, res) => {
+  try {
+    const lenguajes = await prisma.lenguaje.findMany();
+    res.json(lenguajes);
+  } catch (error) {
     res.status(500).json({ error: "Internal server error" });
   }
 });
