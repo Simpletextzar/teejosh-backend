@@ -1,56 +1,99 @@
 import express from "express";
 const cors = require("cors");
 import { PrismaClient } from "@prisma/client";
+import swaggerUi from "swagger-ui-express";
+import swaggerJSDoc from "swagger-jsdoc";
 
 const prisma = new PrismaClient();
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Enable CORS for all origins (or replace "*" with your frontend URL in production)
-// app.use(cors());
-// app.options("*", cors()); // Handle preflight requests
 app.use(cors({ origin: "*" }));
-
 app.use(express.json());
 
-// Endpoint de productos
-// GET all productos
+// ---------------- Swagger Config ----------------
+const swaggerSpec = swaggerJSDoc({
+  definition: {
+    openapi: "3.0.0",
+    info: {
+      title: "TeeJosh API",
+      version: "1.0.0",
+      description:
+        "Documentación de la API del sistema de inventario de Teejosh",
+    },
+  },
+  apis: ["./src/index.ts"],
+});
+
+app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+// ----------------------------------------------------
+
+/**
+ * @openapi
+ * /productos:
+ *   get:
+ *     summary: Obtener todos los productos
+ *     tags:
+ *       - Productos
+ *     responses:
+ *       200:
+ *         description: Lista de productos
+ */
 app.get("/productos", async (req, res) => {
   try {
     const productos = await prisma.producto.findMany();
     res.json(productos);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
-// Endpoint de items
-// GET all items
-// GET all items with related product, edition, and language names
-app.get("/items", async (req, res) => {
-  try {
-    const items = await prisma.item.findMany({
-      include: {
-        producto: {
-          select: { id: true, nombre: true }, // only fetch id and nombre
-        },
-        edicion: {
-          select: { id: true, nombre: true },
-        },
-        lenguaje: {
-          select: { id: true, nombre: true },
-        },
-      },
-    });
-    res.json(items);
-  } catch (error) {
-    console.error(error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
 
-// GET single item by ID
+/**
+ * @openapi
+ * /items:
+ *   get:
+ *     summary: Obtener todos los items con información relacionada
+ *     tags:
+ *       - Items
+ *     responses:
+ *       200:
+ *         description: Lista de items
+ */
+app.get("/items", async (req, res) => {
+  try {
+    const items = await prisma.item.findMany({
+      include: {
+        producto: { select: { id: true, nombre: true } },
+        edicion: { select: { id: true, nombre: true } },
+        lenguaje: { select: { id: true, nombre: true } },
+      },
+    });
+    res.json(items);
+  } catch (error) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/**
+ * @openapi
+ * /items/{id}:
+ *   get:
+ *     summary: Obtener un item por su ID
+ *     tags:
+ *       - Items
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Item encontrado
+ *       404:
+ *         description: Item no encontrado
+ */
 app.get("/items/:id", async (req, res) => {
   const { id } = req.params;
   try {
@@ -60,12 +103,39 @@ app.get("/items/:id", async (req, res) => {
     if (!item) return res.status(404).json({ error: "Item not found" });
     res.json(item);
   } catch (error) {
-    console.error(error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
 
-// CREATE new item
+/**
+ * @openapi
+ * /items:
+ *   post:
+ *     summary: Crear un nuevo item
+ *     tags:
+ *       - Items
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               id_producto:
+ *                 type: integer
+ *               precio:
+ *                 type: number
+ *               cantidad:
+ *                 type: integer
+ *               id_edicion:
+ *                 type: integer
+ *                 nullable: true
+ *               id_lenguaje:
+ *                 type: integer
+ *     responses:
+ *       201:
+ *         description: Item creado exitosamente
+ */
 app.post("/items", async (req, res) => {
   const { id_producto, precio, cantidad, id_edicion, id_lenguaje } = req.body;
   try {
@@ -80,12 +150,35 @@ app.post("/items", async (req, res) => {
     });
     res.status(201).json(item);
   } catch (error) {
-    console.error(error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
 
-// UPDATE item by ID
+/**
+ * @openapi
+ * /items/{id}:
+ *   put:
+ *     summary: Actualizar un item por su ID
+ *     tags:
+ *       - Items
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: Item actualizado
+ *       404:
+ *         description: Item no encontrado
+ */
 app.put("/items/:id", async (req, res) => {
   const { id } = req.params;
   const { id_producto, precio, cantidad, id_edicion, id_lenguaje } = req.body;
@@ -102,12 +195,27 @@ app.put("/items/:id", async (req, res) => {
     });
     res.json(item);
   } catch (error) {
-    console.error(error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
 
-// DELETE item by ID
+/**
+ * @openapi
+ * /items/{id}:
+ *   delete:
+ *     summary: Eliminar un item por su ID
+ *     tags:
+ *       - Items
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Item eliminado correctamente
+ */
 app.delete("/items/:id", async (req, res) => {
   const { id } = req.params;
   try {
@@ -116,12 +224,21 @@ app.delete("/items/:id", async (req, res) => {
     });
     res.json({ message: "Item deleted successfully" });
   } catch (error) {
-    console.error(error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
 
-// GET all ediciones
+/**
+ * @openapi
+ * /ediciones:
+ *   get:
+ *     summary: Obtener todas las ediciones
+ *     tags:
+ *       - Ediciones
+ *     responses:
+ *       200:
+ *         description: Lista de ediciones
+ */
 app.get("/ediciones", async (req, res) => {
   try {
     const ediciones = await prisma.edicion.findMany();
@@ -131,7 +248,17 @@ app.get("/ediciones", async (req, res) => {
   }
 });
 
-// GET all lenguajes
+/**
+ * @openapi
+ * /lenguajes:
+ *   get:
+ *     summary: Obtener todos los lenguajes
+ *     tags:
+ *       - Lenguajes
+ *     responses:
+ *       200:
+ *         description: Lista de lenguajes
+ */
 app.get("/lenguajes", async (req, res) => {
   try {
     const lenguajes = await prisma.lenguaje.findMany();
