@@ -53,12 +53,33 @@ model lenguaje {
 }
 
 model producto {
-  id            Int        @id(map: "pk_producto_id") @default(autoincrement())
-  nombre        String     @db.VarChar(60)
-  descripcion   String?
-  id_categoria  Int
-  id_franquicia Int
-  item          item[]
-  categoria     categoria  @relation(fields: [id_categoria], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_producto_id_categoria_categoria_id")
-  franquicia    franquicia @relation(fields: [id_franquicia], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_producto_id_franquicia_franquicia_id")
+  id             Int              @id(map: "pk_producto_id") @default(autoincrement())
+  nombre         String           @db.VarChar(60)
+  descripcion    String?
+  id_categoria   Int
+  id_franquicia  Int
+  item           item[]
+  categoria      categoria        @relation(fields: [id_categoria], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_producto_id_categoria_categoria_id")
+  franquicia     franquicia       @relation(fields: [id_franquicia], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_producto_id_franquicia_franquicia_id")
+  producto_venta producto_venta[]
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model producto_venta {
+  id_producto  Int
+  id_reg_venta Int
+  cantidad     Int?
+  monto        Decimal?  @db.Decimal(10, 2)
+  id           Int       @id @default(autoincrement())
+  producto     producto  @relation(fields: [id_producto], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  reg_venta    reg_venta @relation(fields: [id_reg_venta], references: [id_reg_venta], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model reg_venta {
+  id_reg_venta   Int              @id @default(autoincrement())
+  monto_total    Decimal          @db.Decimal(10, 2)
+  fecha          DateTime?        @db.Date
+  hora           DateTime?        @db.Time(6)
+  m_pago         String?
+  producto_venta producto_venta[]
 }

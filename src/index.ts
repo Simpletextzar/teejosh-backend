@@ -268,6 +268,234 @@ app.get("/lenguajes", async (req, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /ventas:
+ *   get:
+ *     summary: Obtener todas las ventas
+ *     tags:
+ *       - Ventas
+ *     responses:
+ *       200:
+ *         description: Lista de ventas
+ */
+app.get("/ventas", async (req, res) => {
+  try {
+    const ventas = await prisma.reg_venta.findMany({
+      include: {
+        producto_venta: true,
+      },
+      orderBy: { id_reg_venta: "desc" },
+    });
+    res.json(ventas);
+  } catch (error) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/**
+ * @openapi
+ * /ventas/{id}:
+ *   get:
+ *     summary: Obtener una venta por ID
+ *     tags:
+ *       - Ventas
+ */
+app.get("/ventas/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const venta = await prisma.reg_venta.findUnique({
+      where: { id_reg_venta: Number(id) },
+      include: { producto_venta: true },
+    });
+    if (!venta) return res.status(404).json({ error: "Venta not found" });
+    res.json(venta);
+  } catch {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/**
+ * @openapi
+ * /ventas:
+ *   post:
+ *     summary: Crear una nueva venta
+ *     tags:
+ *       - Ventas
+ */
+app.post("/ventas", async (req, res) => {
+  const { monto_total, fecha, hora, m_pago } = req.body;
+
+  try {
+    const venta = await prisma.reg_venta.create({
+      data: {
+        monto_total,
+        fecha: fecha ? new Date(fecha) : null,
+        hora: hora ? new Date(`1970-01-01T${hora}`) : null,
+        m_pago,
+      },
+    });
+
+    res.status(201).json(venta);
+  } catch (error) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/**
+ * @openapi
+ * /ventas/{id}:
+ *   put:
+ *     summary: Actualizar una venta
+ *     tags:
+ *       - Ventas
+ */
+app.put("/ventas/:id", async (req, res) => {
+  const { id } = req.params;
+  const { monto_total, fecha, hora, m_pago } = req.body;
+
+  try {
+    const venta = await prisma.reg_venta.update({
+      where: { id_reg_venta: Number(id) },
+      data: {
+        monto_total,
+        fecha: fecha ? new Date(fecha) : null,
+        hora: hora ? new Date(`1970-01-01T${hora}`) : null,
+        m_pago,
+      },
+    });
+    res.json(venta);
+  } catch {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/**
+ * @openapi
+ * /ventas/{id}:
+ *   delete:
+ *     summary: Eliminar una venta
+ *     tags:
+ *       - Ventas
+ */
+app.delete("/ventas/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    await prisma.producto_venta.deleteMany({
+      where: { id_reg_venta: Number(id) },
+    });
+
+    await prisma.reg_venta.delete({
+      where: { id_reg_venta: Number(id) },
+    });
+
+    res.json({ message: "Venta deleted successfully" });
+  } catch {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/**
+ * @openapi
+ * /producto_venta:
+ *   get:
+ *     summary: Obtener todos los productos vendidos
+ *     tags:
+ *       - ProductoVenta
+ */
+app.get("/producto_venta", async (req, res) => {
+  try {
+    const pv = await prisma.producto_venta.findMany({
+      include: {
+        producto: true,
+        reg_venta: true,
+      },
+    });
+    res.json(pv);
+  } catch {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/**
+ * @openapi
+ * /producto_venta:
+ *   post:
+ *     summary: Crear un registro de producto_venta
+ *     tags:
+ *       - ProductoVenta
+ */
+app.post("/producto_venta", async (req, res) => {
+  const { id_producto, id_reg_venta, cantidad, monto } = req.body;
+
+  try {
+    const pv = await prisma.producto_venta.create({
+      data: {
+        id_producto,
+        id_reg_venta,
+        cantidad,
+        monto,
+      },
+    });
+
+    res.status(201).json(pv);
+  } catch {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/**
+ * @openapi
+ * /producto_venta/{id}:
+ *   put:
+ *     summary: Actualizar un producto_venta
+ *     tags:
+ *       - ProductoVenta
+ */
+app.put("/producto_venta/:id", async (req, res) => {
+  const { id } = req.params;
+  const { id_producto, id_reg_venta, cantidad, monto } = req.body;
+
+  try {
+    const pv = await prisma.producto_venta.update({
+      where: { id: Number(id) },
+      data: {
+        id_producto,
+        id_reg_venta,
+        cantidad,
+        monto,
+      },
+    });
+
+    res.json(pv);
+  } catch {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/**
+ * @openapi
+ * /producto_venta/{id}:
+ *   delete:
+ *     summary: Eliminar un producto_venta
+ *     tags:
+ *       - ProductoVenta
+ */
+app.delete("/producto_venta/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    await prisma.producto_venta.delete({
+      where: { id: Number(id) },
+    });
+
+    res.json({ message: "ProductoVenta deleted successfully" });
+  } catch {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 app.get("/", (req, res) => {
   res.send("API is running 🚀");
 });
