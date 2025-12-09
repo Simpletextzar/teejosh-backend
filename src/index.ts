@@ -319,26 +319,54 @@ app.get("/ventas/:id", async (req, res) => {
  * @openapi
  * /ventas:
  *   post:
- *     summary: Crear una nueva venta
+ *     summary: Crear una nueva venta con sus productos
  *     tags:
  *       - Ventas
  */
 app.post("/ventas", async (req, res) => {
-  const { monto_total, fecha, hora, m_pago } = req.body;
+  const { productos, m_pago } = req.body;
+
+  /**
+   * productos = [
+   *   { id_producto: number, cantidad: number, monto: number }
+   * ]
+   */
+
+  if (!productos || !Array.isArray(productos) || productos.length === 0) {
+    return res.status(400).json({ error: "Productos inválidos" });
+  }
 
   try {
-    const venta = await prisma.reg_venta.create({
-      data: {
-        monto_total,
-        fecha: fecha ? new Date(fecha) : null,
-        hora: hora ? new Date(`1970-01-01T${hora}`) : null,
-        m_pago,
-      },
+    const result = await prisma.$transaction(async (tx) => {
+      // 1) Crear cabecera de la venta
+      const venta = await tx.reg_venta.create({
+        data: {
+          monto_total: productos.reduce((sum, p) => sum + Number(p.monto), 0),
+          fecha: new Date(), // fecha automática
+          hora: new Date(), // hora automática
+          m_pago,
+        },
+      });
+
+      // 2) Crear los productos asociados
+      for (const p of productos) {
+        await tx.producto_venta.create({
+          data: {
+            id_producto: p.id_producto,
+            id_reg_venta: venta.id_reg_venta,
+            cantidad: p.cantidad,
+            monto: p.monto,
+          },
+        });
+      }
+
+      return venta;
     });
 
-    res.status(201).json(venta);
+    res.status(201).json(result);
   } catch (error) {
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Venta error:", error);
+    res.status(500).json({ error: "No se pudo crear la venta" });
   }
 });
 
